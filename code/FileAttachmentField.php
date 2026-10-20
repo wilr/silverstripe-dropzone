@@ -1,5 +1,6 @@
 <?php
 
+use SilverStripe\Core\Validation\ValidationResult;
 use SilverStripe\Forms\FileField;
 use SilverStripe\ORM\DataObjectInterface;
 use SilverStripe\View\Requirements;
@@ -461,9 +462,9 @@ class FileAttachmentField extends FileField
      *
      * @return boolean
      */
-    public function validate($validator)
+    public function validate(): ValidationResult
     {
-        $result = true;
+        $result = parent::validate();
 
         // Detect if files have been removed between AJAX uploads and form submission
         $value = $this->dataValue();
@@ -473,7 +474,7 @@ class FileAttachmentField extends FileField
             // (Below validation isn't triggered as setValue() removes the invalid ID
             //  to prevent the CMS from loading something it shouldn't, also stops the
             //  validator from realizing there's an invalid ID.)
-            $validator->validationError(
+            $result->addFieldError(
                 $this->name,
                 _t(
                     'FileAttachmentField.VALIDATION',
@@ -481,26 +482,22 @@ class FileAttachmentField extends FileField
                 ),
                 "validation"
             );
-            $result = false;
-        } else if ($value && is_array($value)) {
+        } elseif ($value && is_array($value)) {
             // Prevent a malicious user from inspecting element and changing
             // one of the <input type="hidden"> fields to use an invalid File ID.
             $validIDs = $this->getValidFileIDs();
 
             foreach ($value as $id) {
                 if (!isset($validIDs[$id])) {
-                    if ($validator) {
-                        $validator->validationError(
-                            $this->name,
-                            _t(
-                                'FileAttachmentField.VALIDATION',
-                                'Invalid file ID sent %s.',
-                                array('id' => $id)
-                            ),
-                            "validation"
-                        );
-                    }
-                    $result = false;
+                    $result->addFieldError(
+                        $this->name,
+                        _t(
+                            'FileAttachmentField.VALIDATION',
+                            'Invalid file ID sent %s.',
+                            ['id' => $id]
+                        ),
+                        "validation"
+                    );
                 }
             }
         }
